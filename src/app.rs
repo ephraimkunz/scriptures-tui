@@ -2,6 +2,7 @@ use std::error;
 
 use rusqlite::Connection;
 use tui::{
+    layout::Alignment,
     style::{Modifier, Style},
     text::{Line, Span, Text},
     widgets::ListState,
@@ -117,12 +118,57 @@ impl Chapter {
         if let Some(body) = tree.descendants().find(|n| n.tag_name().name() == "body") {
             let header = body.descendants().find(|n| n.tag_name().name() == "header");
             if let Some(header) = header {
-                if let Some(study_summary) = header
-                    .descendants()
+                if let Some(title_node) = header
+                    .children()
+                    .find(|n| n.attribute("id") == Some("title1"))
+                {
+                    let mut title_text = String::new();
+                    recursive_text_as_string(title_node, &mut title_text);
+
+                    let line = Line {
+                        spans: vec![Span {
+                            content: title_text.into(),
+                            style: Style::default().add_modifier(Modifier::BOLD),
+                        }],
+                        alignment: Some(Alignment::Center),
+                    };
+                    text.extend(Text { lines: vec![line] });
+                }
+
+                if let Some(subtitle_node) = header
+                    .children()
+                    .find(|n| n.attribute("id") == Some("subtitle1"))
+                {
+                    let mut subtitle_text = String::new();
+                    recursive_text_as_string(subtitle_node, &mut subtitle_text);
+
+                    let line = Line {
+                        spans: vec![Span {
+                            content: subtitle_text.into(),
+                            style: Style::default().add_modifier(Modifier::BOLD),
+                        }],
+                        alignment: Some(Alignment::Center),
+                    };
+                    text.extend(Text { lines: vec![line] });
+                    text.extend(Text::raw(""));
+                }
+
+                if let Some(intro_node) = header
+                    .children()
+                    .find(|n| n.attribute("id") == Some("intro1"))
+                {
+                    let mut intro_text = String::new();
+                    recursive_text_as_string(intro_node, &mut intro_text);
+                    text.extend(Text::raw(intro_text));
+                    text.extend(Text::raw(""));
+                }
+
+                if let Some(study_summary_node) = header
+                    .children()
                     .find(|n| n.attribute("class") == Some("study-summary"))
                 {
                     let mut summary_text = String::new();
-                    recursive_text_as_string(study_summary, &mut summary_text);
+                    recursive_text_as_string(study_summary_node, &mut summary_text);
                     if !summary_text.is_empty() {
                         text.extend(Text::styled(
                             summary_text,
