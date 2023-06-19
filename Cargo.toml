@@ -1,0 +1,13 @@
+[package]
+name = "scripture-tui"
+version = "0.1.0"
+authors = ["Ephraim Kunz <ephraimkunz@me.com>"]
+license = "MIT"
+edition = "2021"
+
+[dependencies]
+crossterm = "0.26"
+itertools = "0.10"
+roxmltree = "0.18"
+rusqlite = "0.29"
+tui = { package = "ratatui", version = "0.21" }
