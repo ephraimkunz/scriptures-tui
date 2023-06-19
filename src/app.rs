@@ -150,7 +150,6 @@ impl Chapter {
                         alignment: Some(Alignment::Center),
                     };
                     text.extend(Text { lines: vec![line] });
-                    text.extend(Text::raw(""));
                 }
 
                 if let Some(intro_node) = header
@@ -159,8 +158,8 @@ impl Chapter {
                 {
                     let mut intro_text = String::new();
                     recursive_text_as_string(intro_node, &mut intro_text);
-                    text.extend(Text::raw(intro_text));
                     text.extend(Text::raw(""));
+                    text.extend(Text::raw(intro_text));
                 }
 
                 if let Some(study_summary_node) = header
@@ -169,13 +168,12 @@ impl Chapter {
                 {
                     let mut summary_text = String::new();
                     recursive_text_as_string(study_summary_node, &mut summary_text);
-                    if !summary_text.is_empty() {
-                        text.extend(Text::styled(
-                            summary_text,
-                            Style::default().add_modifier(Modifier::ITALIC),
-                        ));
-                        text.extend(Text::raw("")); // Empty line
-                    }
+                    text.extend(Text::raw(""));
+                    text.extend(Text::styled(
+                        summary_text,
+                        Style::default().add_modifier(Modifier::ITALIC),
+                    ));
+                    text.extend(Text::raw("")); // Empty line
                 }
             }
 
