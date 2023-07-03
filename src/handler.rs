@@ -39,12 +39,42 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
         // MouseEventKind::Up(_) => todo!(),
         // MouseEventKind::Drag(_) => todo!(),
         // MouseEventKind::Moved => todo!(),
-        MouseEventKind::ScrollDown => app.text_scroll = u16::min(u16::MAX, app.text_scroll + 1),
+        MouseEventKind::ScrollDown => {
+            if mouse_event.column <= app.text_rect.right()
+                && mouse_event.column >= app.text_rect.left()
+                && mouse_event.row >= app.text_rect.top()
+                && mouse_event.row <= app.text_rect.bottom()
+            {
+                app.text_scroll = u16::min(u16::MAX, app.text_scroll + 1)
+            } else if mouse_event.column <= app.footnote_rect.right()
+                && mouse_event.column >= app.footnote_rect.left()
+                && mouse_event.row >= app.footnote_rect.top()
+                && mouse_event.row <= app.footnote_rect.bottom()
+            {
+                app.footnote_scroll = u16::min(u16::MAX, app.footnote_scroll + 1)
+            }
+        }
         MouseEventKind::ScrollUp => {
-            app.text_scroll = if app.text_scroll == 0 {
-                0
-            } else {
-                app.text_scroll - 1
+            if mouse_event.column <= app.text_rect.right()
+                && mouse_event.column >= app.text_rect.left()
+                && mouse_event.row >= app.text_rect.top()
+                && mouse_event.row <= app.text_rect.bottom()
+            {
+                app.text_scroll = if app.text_scroll == 0 {
+                    0
+                } else {
+                    app.text_scroll - 1
+                }
+            } else if mouse_event.column <= app.footnote_rect.right()
+                && mouse_event.column >= app.footnote_rect.left()
+                && mouse_event.row >= app.footnote_rect.top()
+                && mouse_event.row <= app.footnote_rect.bottom()
+            {
+                app.footnote_scroll = if app.footnote_scroll == 0 {
+                    0
+                } else {
+                    app.footnote_scroll - 1
+                }
             }
         }
         _ => {}

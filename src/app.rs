@@ -1,8 +1,8 @@
-use std::error;
+use std::{collections::HashMap, error};
 
 use rusqlite::Connection;
 use tui::{
-    layout::Alignment,
+    layout::{Alignment, Rect},
     style::{Modifier, Style},
     text::{Line, Span, Text},
     widgets::ListState,
@@ -13,16 +13,17 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 pub const NUM_COLUMNS: usize = 3;
 
-#[derive(Debug, Default, Clone)]
-struct Scriptures {
-    works: Vec<Work>,
-}
-
 #[derive(Debug, Clone)]
 struct SqliteRow {
+    id: String,
     html_content: String,
     chapter_title: String,
     book_title: String,
+}
+
+#[derive(Debug, Default, Clone)]
+struct Scriptures {
+    works: Vec<Work>,
 }
 
 impl Scriptures {
@@ -42,12 +43,13 @@ impl Scriptures {
 
         for (work_title, db) in DATABASES {
             let conn = Connection::open(db)?;
-            let mut stmt = conn.prepare("SELECT content_html, subitem.title, IIF(nav_collection.nav_section_id IS NULL, nav_item.title, nav_collection.title) FROM subitem_content JOIN subitem ON subitem_content.subitem_id = subitem.id JOIN nav_item ON subitem_content.subitem_id = nav_item.subitem_id JOIN nav_section ON nav_item.nav_section_id = nav_section.id JOIN nav_collection ON nav_collection.id = nav_section.nav_collection_id ORDER BY subitem.position")?;
+            let mut stmt = conn.prepare("SELECT subitem.id, content_html, subitem.title, IIF(nav_collection.nav_section_id IS NULL, nav_item.title, nav_collection.title) FROM subitem_content JOIN subitem ON subitem_content.subitem_id = subitem.id JOIN nav_item ON subitem_content.subitem_id = nav_item.subitem_id JOIN nav_section ON nav_item.nav_section_id = nav_section.id JOIN nav_collection ON nav_collection.id = nav_section.nav_collection_id ORDER BY subitem.position")?;
             let rows = stmt.query_map([], |row| {
                 Ok(SqliteRow {
-                    html_content: row.get(0)?,
-                    chapter_title: row.get(1)?,
-                    book_title: row.get(2)?,
+                    id: row.get(0)?,
+                    html_content: row.get(1)?,
+                    chapter_title: row.get(2)?,
+                    book_title: row.get(3)?,
                 })
             })?;
 
@@ -69,9 +71,25 @@ impl Scriptures {
                     chapters.clear();
                 }
 
+                let mut stmt = conn.prepare("SELECT label_html, content_html, ref_id FROM related_content_item WHERE subitem_id = :id")?;
+                let footnote_rows = stmt.query_map(&[(":id", &row.id)], |row| {
+                    Ok(Footnote {
+                        label_html: row.get(0)?,
+                        content_html: row.get(1)?,
+                        id: row.get(2)?,
+                    })
+                })?;
+
+                let footnotes = footnote_rows.into_iter().flatten();
+                let mut footnote_map = HashMap::new();
+                for footnote in footnotes {
+                    footnote_map.insert(footnote.id.clone(), footnote);
+                }
+
                 chapters.push(Chapter {
                     title: row.chapter_title.clone(),
                     html_content: row.html_content.clone(),
+                    footnotes: footnote_map,
                 });
             }
 
@@ -108,6 +126,51 @@ struct Book {
 struct Chapter {
     title: String,
     html_content: String,
+    footnotes: HashMap<String, Footnote>,
+}
+
+impl Chapter {
+    fn footnotes_text(&self) -> Text {
+        let refs_in_order = self.refs_in_order();
+        let mut result = Text::default();
+        for ref_id in &refs_in_order {
+            if let Some(footnote) = self.footnotes.get(ref_id) {
+                let wrapped_label = format!("<p>{}</p>", footnote.label_html);
+                let title_tree = roxmltree::Document::parse(&wrapped_label).unwrap();
+                let mut title = String::new();
+                recursive_text_as_string(title_tree.root(), &mut title);
+
+                let content_tree = roxmltree::Document::parse(&footnote.content_html).unwrap();
+                let mut content = String::new();
+                recursive_text_as_string(content_tree.root(), &mut content);
+
+                let line = Line::from(vec![
+                    Span::styled(title, Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(content),
+                ]);
+
+                result.extend(Text::from(line));
+            }
+        }
+
+        result
+    }
+
+    fn refs_in_order(&self) -> Vec<String> {
+        let tree = roxmltree::Document::parse(&self.html_content).unwrap();
+        let nodes = tree
+            .descendants()
+            .filter(|n| n.attribute("class") == Some("study-note-ref"));
+        let data_refs = nodes.filter_map(|n| n.attribute("data-ref"));
+        data_refs.map(|r| r.into()).collect()
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+struct Footnote {
+    id: String,
+    label_html: String,
+    content_html: String,
 }
 
 impl Chapter {
@@ -221,7 +284,10 @@ fn verse_text(node: roxmltree::Node) -> Line<'static> {
             for child2 in child.children() {
                 if child2.tag_name().name() == "sup" {
                     if let Some(footnote) = footnote_unicode(child2.text()) {
-                        line.spans.push(Span::raw(footnote));
+                        line.spans.push(Span::styled(
+                            footnote,
+                            Style::default().add_modifier(Modifier::ITALIC),
+                        ));
                     }
                 } else if child2.is_text() {
                     line.spans
@@ -277,7 +343,12 @@ pub struct App {
     pub works_state: ListState,
     pub books_state: ListState,
     pub chapters_state: ListState,
+
+    pub text_rect: Rect,
     pub text_scroll: u16,
+
+    pub footnote_rect: Rect,
+    pub footnote_scroll: u16,
 }
 
 impl Default for App {
@@ -289,7 +360,12 @@ impl Default for App {
             works_state: ListState::default().with_selected(Some(0)),
             books_state: ListState::default().with_selected(Some(0)),
             chapters_state: ListState::default().with_selected(Some(0)),
+
+            text_rect: Rect::default(),
             text_scroll: 0,
+
+            footnote_rect: Rect::default(),
+            footnote_scroll: 0,
         }
     }
 }
@@ -308,18 +384,26 @@ impl App {
         self.running = false;
     }
 
-    pub fn verse_title(&self) -> String {
-        let chapter = &self.data.works[self.works_state.selected().unwrap_or_default()].books
+    fn current_chapter(&self) -> &Chapter {
+        &self.data.works[self.works_state.selected().unwrap_or_default()].books
             [self.books_state.selected().unwrap_or_default()]
-        .chapters[self.chapters_state.selected().unwrap_or_default()];
+        .chapters[self.chapters_state.selected().unwrap_or_default()]
+    }
+
+    pub fn chapter_title(&self) -> String {
+        let chapter = self.current_chapter();
         chapter.title.clone()
     }
 
-    pub fn verse_text(&self) -> Text {
-        let chapter = &self.data.works[self.works_state.selected().unwrap_or_default()].books
-            [self.books_state.selected().unwrap_or_default()]
-        .chapters[self.chapters_state.selected().unwrap_or_default()];
+    pub fn chapter_text(&self) -> Text {
+        let chapter = self.current_chapter();
         chapter.text()
+    }
+
+    pub fn chapter_footnotes_text(&self) -> Text {
+        let chapter = self.current_chapter();
+        let footnotes = chapter.footnotes_text();
+        footnotes
     }
 
     pub fn works_titles(&self) -> Vec<String> {
@@ -410,6 +494,7 @@ impl App {
         self.books_state = ListState::default().with_selected(Some(0));
         self.chapters_state = ListState::default().with_selected(Some(0));
         self.text_scroll = 0;
+        self.footnote_scroll = 0;
     }
 
     fn update_books(&mut self, down: bool) {
@@ -447,6 +532,7 @@ impl App {
         self.books_state.select(Some(i));
         self.chapters_state = ListState::default().with_selected(Some(0));
         self.text_scroll = 0;
+        self.footnote_scroll = 0;
     }
 
     fn update_chapters(&mut self, down: bool) {
@@ -485,5 +571,6 @@ impl App {
 
         self.chapters_state.select(Some(i));
         self.text_scroll = 0;
+        self.footnote_scroll = 0;
     }
 }
