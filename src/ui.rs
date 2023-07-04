@@ -130,6 +130,7 @@ fn render_chapter_text<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect
 fn render_footnotes<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: Rect) {
     let footnotes = Paragraph::new(app.chapter_footnotes_text())
         .scroll((app.footnote_scroll, 0))
+        .wrap(Wrap { trim: false })
         .block(
             Block::default()
                 .title("Footnotes")
