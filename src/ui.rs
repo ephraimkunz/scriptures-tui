@@ -128,15 +128,18 @@ fn render_chapter_text<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect
 }
 
 fn render_footnotes<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: Rect) {
+    let block = Block::default()
+        .title("Footnotes")
+        .title_alignment(Alignment::Center)
+        .borders(Borders::TOP);
+
+    let footnote_content_area = block.inner(rect);
+
     let footnotes = Paragraph::new(app.chapter_footnotes_text())
         .scroll((app.footnote_scroll, 0))
         .wrap(Wrap { trim: false })
-        .block(
-            Block::default()
-                .title("Footnotes")
-                .title_alignment(Alignment::Center)
-                .borders(Borders::TOP),
-        );
+        .block(block);
+
     frame.render_widget(footnotes, rect);
-    app.footnote_rect = rect;
+    app.footnote_rect = footnote_content_area;
 }

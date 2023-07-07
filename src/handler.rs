@@ -45,13 +45,31 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                 && mouse_event.row >= app.text_rect.top()
                 && mouse_event.row <= app.text_rect.bottom()
             {
-                app.text_scroll = u16::min(u16::MAX, app.text_scroll + 1)
+                let text = app.chapter_text();
+                let mut height = 0;
+                for line in text {
+                    height += 1;
+                    let wrapping = line.width() as u16 / app.text_rect.width;
+                    height += wrapping;
+                }
+
+                let height = u16::max(height - app.text_rect.height, 0);
+                app.text_scroll = u16::min(height, app.text_scroll + 1)
             } else if mouse_event.column <= app.footnote_rect.right()
                 && mouse_event.column >= app.footnote_rect.left()
                 && mouse_event.row >= app.footnote_rect.top()
                 && mouse_event.row <= app.footnote_rect.bottom()
             {
-                app.footnote_scroll = u16::min(u16::MAX, app.footnote_scroll + 1)
+                let text = app.chapter_footnotes_text();
+                let mut height = 0;
+                for line in text {
+                    height += 1;
+                    let wrapping = line.width() as u16 / app.footnote_rect.width;
+                    height += wrapping;
+                }
+
+                let height = u16::max(height - app.footnote_rect.height, 0);
+                app.footnote_scroll = u16::min(height, app.footnote_scroll + 1)
             }
         }
         MouseEventKind::ScrollUp => {
