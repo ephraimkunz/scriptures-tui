@@ -277,9 +277,47 @@ fn verse_text(node: roxmltree::Node) -> Line<'static> {
                 Style::default().add_modifier(Modifier::BOLD),
             );
             line.spans.push(verse_num_text);
+        } else if child.attribute("class") == Some("para-mark") {
+            line.spans
+                .push(Span::raw(child.text().unwrap().to_string()))
         } else if child.is_text() {
             line.spans
                 .push(Span::raw(child.text().unwrap().to_string()))
+        } else if child.attribute("class") == Some("clarity-word") {
+            if let Some(text) = child.text() {
+                // Sometimes clarity word just wraps some text.
+                let clarity_text = Span::styled(
+                    text.to_string(),
+                    Style::default().add_modifier(Modifier::ITALIC),
+                );
+                line.spans.push(clarity_text);
+            } else {
+                // Other times it wraps a reference.
+                for child in child.children() {
+                    if child.attribute("class") == Some("study-note-ref") {
+                        for child2 in child.children() {
+                            if child2.tag_name().name() == "sup" {
+                                if let Some(footnote) = footnote_unicode(child2.text()) {
+                                    line.spans.push(Span::styled(
+                                        footnote,
+                                        Style::default().add_modifier(Modifier::ITALIC),
+                                    ));
+                                }
+                            } else if child2.is_text() {
+                                line.spans.push(Span::styled(
+                                    child2.text().unwrap().to_string(),
+                                    Style::default().add_modifier(Modifier::ITALIC),
+                                ))
+                            }
+                        }
+                    } else if child.is_text() {
+                        line.spans.push(Span::styled(
+                            child.text().unwrap().to_string(),
+                            Style::default().add_modifier(Modifier::ITALIC),
+                        ))
+                    }
+                }
+            }
         } else if child.attribute("class") == Some("study-note-ref") {
             for child2 in child.children() {
                 if child2.tag_name().name() == "sup" {
