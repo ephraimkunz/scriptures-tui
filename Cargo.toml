@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.26"
-itertools = "0.10"
 roxmltree = "0.18"
 rusqlite = "0.29"
 tui = { package = "ratatui", version = "0.21" }
