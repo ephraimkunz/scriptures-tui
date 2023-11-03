@@ -6,7 +6,7 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
-crossterm = "0.26"
+crossterm = "0.27"
 roxmltree = "0.18"
 rusqlite = "0.29"
-tui = { package = "ratatui", version = "0.21" }
+tui = { package = "ratatui", version = "0.24" }

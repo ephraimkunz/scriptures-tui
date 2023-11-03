@@ -1,5 +1,4 @@
 use tui::{
-    backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Wrap},
@@ -21,7 +20,7 @@ fn highlight_style(selected: bool) -> Style {
 }
 
 /// Renders the user interface widgets.
-pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
+pub fn render(app: &mut App, frame: &mut Frame<'_>) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -42,7 +41,7 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
     render_chapter(app, frame, chunks[6])
 }
 
-fn render_works_list<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: Rect) {
+fn render_works_list(app: &mut App, frame: &mut Frame<'_>, rect: Rect) {
     let works = List::new(
         app.works_titles()
             .into_iter()
@@ -61,7 +60,7 @@ fn render_works_list<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: 
     frame.render_stateful_widget(works, rect, &mut app.works_state);
 }
 
-fn render_books_list<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: Rect) {
+fn render_books_list(app: &mut App, frame: &mut Frame<'_>, rect: Rect) {
     let books = List::new(
         app.books_titles()
             .into_iter()
@@ -80,7 +79,7 @@ fn render_books_list<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: 
     frame.render_stateful_widget(books, rect, &mut app.books_state);
 }
 
-fn render_chapters_list<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: Rect) {
+fn render_chapters_list(app: &mut App, frame: &mut Frame<'_>, rect: Rect) {
     let chapters = List::new(
         app.chapters_titles()
             .into_iter()
@@ -99,7 +98,7 @@ fn render_chapters_list<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rec
     frame.render_stateful_widget(chapters, rect, &mut app.chapters_state);
 }
 
-fn render_chapter<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: Rect) {
+fn render_chapter(app: &mut App, frame: &mut Frame<'_>, rect: Rect) {
     let chapter_title = app.chapter_title();
     let chapter = Block::default()
         .title(chapter_title)
@@ -119,7 +118,7 @@ fn render_chapter<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: Rec
     render_footnotes(app, frame, chunks[1]);
 }
 
-fn render_chapter_text<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: Rect) {
+fn render_chapter_text(app: &mut App, frame: &mut Frame<'_>, rect: Rect) {
     let text = Paragraph::new(app.chapter_text())
         .scroll((app.text_scroll, 0))
         .wrap(Wrap { trim: false });
@@ -127,7 +126,7 @@ fn render_chapter_text<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect
     app.text_rect = rect;
 }
 
-fn render_footnotes<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, rect: Rect) {
+fn render_footnotes(app: &mut App, frame: &mut Frame<'_>, rect: Rect) {
     let block = Block::default()
         .title("Footnotes")
         .title_alignment(Alignment::Center)
