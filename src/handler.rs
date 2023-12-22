@@ -1,5 +1,6 @@
 use crate::app::{App, AppResult};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
+use tui::widgets::{Paragraph, Wrap};
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -45,31 +46,30 @@ pub fn handle_mouse_events(mouse_event: MouseEvent, app: &mut App) -> AppResult<
                 && mouse_event.row >= app.text_rect.top()
                 && mouse_event.row <= app.text_rect.bottom()
             {
-                let text = app.chapter_text();
-                let mut height = 0;
-                for line in text {
-                    height += 1;
-                    let wrapping = line.width() as u16 / app.text_rect.width;
-                    height += wrapping;
-                }
+                let paragraph = Paragraph::new(app.chapter_text()).wrap(Wrap { trim: false });
+                let line_count = paragraph.line_count(app.text_rect.width) as u16;
 
-                let height = u16::max(height - app.text_rect.height, 0);
-                app.text_scroll = u16::min(height, app.text_scroll + 1)
+                let max_scroll = if line_count < app.text_rect.height {
+                    0
+                } else {
+                    line_count - app.text_rect.height
+                };
+                app.text_scroll = u16::min(max_scroll, app.text_scroll + 1)
             } else if mouse_event.column <= app.footnote_rect.right()
                 && mouse_event.column >= app.footnote_rect.left()
                 && mouse_event.row >= app.footnote_rect.top()
                 && mouse_event.row <= app.footnote_rect.bottom()
             {
-                let text = app.chapter_footnotes_text();
-                let mut height = 0;
-                for line in text {
-                    height += 1;
-                    let wrapping = line.width() as u16 / app.footnote_rect.width;
-                    height += wrapping;
-                }
+                let paragraph =
+                    Paragraph::new(app.chapter_footnotes_text()).wrap(Wrap { trim: false });
+                let line_count = paragraph.line_count(app.footnote_rect.width) as u16;
 
-                let height = u16::max(height - app.footnote_rect.height, 0);
-                app.footnote_scroll = u16::min(height, app.footnote_scroll + 1)
+                let max_scroll = if line_count < app.footnote_rect.height {
+                    0
+                } else {
+                    line_count - app.footnote_rect.height
+                };
+                app.footnote_scroll = u16::min(max_scroll, app.footnote_scroll + 1)
             }
         }
         MouseEventKind::ScrollUp => {

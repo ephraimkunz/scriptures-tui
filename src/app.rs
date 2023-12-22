@@ -1,5 +1,6 @@
 use std::{collections::HashMap, error};
 
+use roxmltree::ParsingOptions;
 use rusqlite::Connection;
 use tui::{
     layout::{Alignment, Rect},
@@ -136,11 +137,25 @@ impl Chapter {
         for ref_id in &refs_in_order {
             if let Some(footnote) = self.footnotes.get(ref_id) {
                 let wrapped_label = format!("<p>{}</p>", footnote.label_html);
-                let title_tree = roxmltree::Document::parse(&wrapped_label).unwrap();
+                let title_tree = roxmltree::Document::parse_with_options(
+                    &wrapped_label,
+                    ParsingOptions {
+                        allow_dtd: true,
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
                 let mut title = String::new();
                 recursive_text_as_string(title_tree.root(), &mut title);
 
-                let content_tree = roxmltree::Document::parse(&footnote.content_html).unwrap();
+                let content_tree = roxmltree::Document::parse_with_options(
+                    &footnote.content_html,
+                    ParsingOptions {
+                        allow_dtd: true,
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
                 let mut content = String::new();
                 recursive_text_as_string(content_tree.root(), &mut content);
 
@@ -157,7 +172,14 @@ impl Chapter {
     }
 
     fn refs_in_order(&self) -> Vec<String> {
-        let tree = roxmltree::Document::parse(&self.html_content).unwrap();
+        let tree = roxmltree::Document::parse_with_options(
+            &self.html_content,
+            ParsingOptions {
+                allow_dtd: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let nodes = tree
             .descendants()
             .filter(|n| n.attribute("class") == Some("study-note-ref"));
@@ -177,7 +199,14 @@ impl Chapter {
     fn text(&self) -> Text {
         let mut text = Text::default();
 
-        let tree = roxmltree::Document::parse(&self.html_content).unwrap();
+        let tree = roxmltree::Document::parse_with_options(
+            &self.html_content,
+            ParsingOptions {
+                allow_dtd: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         if let Some(body) = tree.descendants().find(|n| n.tag_name().name() == "body") {
             let header = body.descendants().find(|n| n.tag_name().name() == "header");
             if let Some(header) = header {
@@ -277,10 +306,7 @@ fn verse_text(node: roxmltree::Node) -> Line<'static> {
                 Style::default().add_modifier(Modifier::BOLD),
             );
             line.spans.push(verse_num_text);
-        } else if child.attribute("class") == Some("para-mark") {
-            line.spans
-                .push(Span::raw(child.text().unwrap().to_string()))
-        } else if child.is_text() {
+        } else if child.attribute("class") == Some("para-mark") || child.is_text() {
             line.spans
                 .push(Span::raw(child.text().unwrap().to_string()))
         } else if child.attribute("class") == Some("clarity-word") {
