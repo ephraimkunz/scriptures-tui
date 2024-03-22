@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 crossterm = "0.27"
 roxmltree = "0.19"
-rusqlite = "0.30"
-tui = { package = "ratatui", version = "0.25", features = ["unstable-rendered-line-info"]}
+rusqlite = "0.31"
+tui = { package = "ratatui", version = "0.26", features = ["unstable-rendered-line-info"]}

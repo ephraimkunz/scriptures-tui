@@ -223,8 +223,12 @@ impl Chapter {
                             style: Style::default().add_modifier(Modifier::BOLD),
                         }],
                         alignment: Some(Alignment::Center),
+                        ..Default::default()
                     };
-                    text.extend(Text { lines: vec![line] });
+                    text.extend(Text {
+                        lines: vec![line],
+                        ..Default::default()
+                    });
                 }
 
                 if let Some(subtitle_node) = header
@@ -240,8 +244,12 @@ impl Chapter {
                             style: Style::default().add_modifier(Modifier::BOLD),
                         }],
                         alignment: Some(Alignment::Center),
+                        ..Default::default()
                     };
-                    text.extend(Text { lines: vec![line] });
+                    text.extend(Text {
+                        lines: vec![line],
+                        ..Default::default()
+                    });
                 }
 
                 if let Some(intro_node) = header
@@ -276,6 +284,7 @@ impl Chapter {
                 let verse_text = verse_text(verse);
                 text.extend(Text {
                     lines: vec![verse_text, "".into()],
+                    ..Default::default()
                 });
             }
         }
