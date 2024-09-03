@@ -32,7 +32,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>) {
             Constraint::Length(1),
             Constraint::Percentage(100),
         ])
-        .split(frame.size());
+        .split(frame.area());
 
     render_works_list(app, frame, chunks[0]);
     render_books_list(app, frame, chunks[2]);
