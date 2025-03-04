@@ -3,10 +3,10 @@ name = "scripture-tui"
 version = "0.1.0"
 authors = ["Ephraim Kunz <ephraimkunz@me.com>"]
 license = "MIT"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 crossterm = "0.28"
 roxmltree = "0.20"
-rusqlite = "0.32"
-tui = { package = "ratatui", version = "0.28", features = ["unstable-rendered-line-info"]}
+rusqlite = "0.33"
+tui = { package = "ratatui", version = "0.29", features = ["unstable-rendered-line-info"]}
